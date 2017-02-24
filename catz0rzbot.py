@@ -27,13 +27,6 @@ def irc_connect(server, port):
     print(response.decode('unicode_escape'))
     send("/me is now online")
 
-def irc_input():
-    while True:
-        command = input("-> ")
-        if command == "q" or command == "x":
-            break
-        send(command)
-
 def send(msg):
     irc.send(("PRIVMSG #sir_catz0rz :" + msg + "\n").encode())
     print("catz0rzbot\t: " + msg)
