@@ -42,20 +42,20 @@ def irc_read():
                 print(str(mesg[0][0]) + "\t: " + str(mesg[0][1]))
             else:
                 print(str(mesg[0][0]) + "\t\t: " + str(mesg[0][1]))
-            if mesg[0][1][0] == "!" and mesg[0][0] == owner or mesg[0][0] in mods:
+            if mesg[0][1] == "!ping":
+                send("pong")
+            elif mesg[0][1] == "!marco":
+                send("polo")
+            elif mesg[0][1] == "!time":
+                send(time.asctime(time.localtime(time.time())))
+            elif mesg[0][1] == "!birthday":
+                send("Happy birthday " + mesg[0][0] + "!")
+            if mesg[0][1][0] == "!" and \
+               mesg[0][0] == owner or mesg[0][0] in mods:
                 if mesg[0][1] == "!stop":
                     send("/me is now offline")
                     print("User " + str(mesg[0][0]) + " called !stop")
                     break
-                elif mesg[0][1] == "!ping":
-                    send("pong")
-                elif mesg[0][1] == "!marco":
-                    send("polo")
-                elif mesg[0][1] == "!time":
-                    send(time.asctime(time.localtime(time.time())))
-                elif mesg[0][1] == "!birthday":
-                    send("Happy birthday " + mesg[0][0] + "!")
-                time.sleep(2)
 
 def irc_exit():
     print("exiting...")
