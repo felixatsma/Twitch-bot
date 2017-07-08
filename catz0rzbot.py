@@ -15,7 +15,7 @@ mods   = ["catz0rzbot"]
 
 irc    = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-com_dic = []
+com_dic = {}
 
 def irc_connect(server, port):
     """
@@ -45,43 +45,57 @@ def irc_read():
     """
     Read loop that reads messages posted in the channel and recovers the
     username and message.
-    All commands are specified in here.
-
-    TODO: add !addcom command that adds simple text response commands stored
-          in a dictionary.
-
-    TODO: seperate words in message.
+    Commands are processed in here.
     """
     regex = re.compile(r'^:([^\s]+)!.*#[^\s]+ :(.*)\r\n$')
+    print(com_dic)
     print("Chat:")
     while True:
         chat = irc.recv(2040)
         mesg = regex.findall(chat.decode())
         if len(mesg) != 0:
             usr  = mesg[0][0]
-            txt  = mesg[0][1]
-            #if (mesg[0][2])
+            txt  = mesg[0][1].split()[0]
+            args = mesg[0][1].split()[1:]
+
             if (len(str(usr)) > 7):
                 print(str(usr) + "\t: " + str(txt))
             else:
                 print(str(usr) + "\t\t: " + str(txt))
-            if txt == "!ping":
-                send("pong")
-            elif txt == "!marco":
-                send("polo")
+
+            if txt in com_dic:
+                send(com_dic[txt])
             elif txt == "!time":
                 send(time.asctime(time.localtime(time.time())))
             elif txt == "!birthday":
                 send("Happy birthday " + usr + "!")
-            if txt[0] == "!" and \
-               usr == owner or usr in mods:
+
+            # Mod commands
+            if txt[0] == "!" and usr == owner or usr in mods:
+                print(txt)
                 if txt == "!stop":
                     send("/me is now offline")
                     print("User " + str(usr) + " called !stop")
                     break
                 elif txt == "!addmod":
-                    pass
-                    #mods.append(mesg[arg])
+                    mods.append(args[0])
+                elif txt == "!addcom":
+                    if args[0] in com_dic:
+                        send("Command already exists!")
+                    else:
+                        add_com(args[0], " ".join(args[1:]))
+
+def read_comms():
+    comms = (open("comms", "r")).readlines()
+
+    for line in comms:
+        com_dic[line.split()[0]] = " ".join(line.split()[1:])
+
+def add_com(com, text):
+    comms = (open("comms", "a"))
+    com_dic["!" + com] = text
+    comms.write("!%s %s\n" % (com, text))
+    send("Command added succesfully.")
 
 def irc_exit():
     """
@@ -96,6 +110,7 @@ def main():
     """
     Initializes connection and read loop.
     """
+    read_comms()
     irc_connect(server, port)
     irc_read()
     irc_exit()
@@ -103,7 +118,12 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (KeyboardInterrupt):
+    except KeyboardInterrupt:
+        send("/me is now offline")
+        irc_exit()
+        sys.exit()
+    except Exception as e:
+        print("ERROR: ", e)
         send("/me is now offline")
         irc_exit()
         sys.exit()
