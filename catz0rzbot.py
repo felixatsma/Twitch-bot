@@ -48,7 +48,6 @@ def irc_read():
     Commands are processed in here.
     """
     regex = re.compile(r'^:([^\s]+)!.*#[^\s]+ :(.*)\r\n$')
-    print(com_dic)
     print("Chat:")
     while True:
         chat = irc.recv(2040)
@@ -86,14 +85,20 @@ def irc_read():
                         add_com(args[0], " ".join(args[1:]))
 
 def read_comms():
+    """
+    Reads commands from 'comms' file into com_dic dictionary.
+    """
     comms = (open("comms", "r")).readlines()
 
     for line in comms:
-        com_dic[line.split()[0]] = " ".join(line.split()[1:])
+        com_dic.update({line.split()[0] : " ".join(line.split()[1:])})
 
 def add_com(com, text):
+    """
+    Adds command to com_dic and 'comms' file.
+    """
     comms = (open("comms", "a"))
-    com_dic["!" + com] = text
+    com_dic.update({"!" + com : text})
     comms.write("!%s %s\n" % (com, text))
     send("Command added succesfully.")
 
