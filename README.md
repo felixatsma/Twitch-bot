@@ -1,5 +1,4 @@
 # Twitch-bot
 Basic twitch.tv bot.
 
-Requires a 'passwd' file with the oauth token required for connecting to twitch.
-This is obviously not included in the repo.
+Necessary data is stored in a "data.json" file. An example file is included in the repo.

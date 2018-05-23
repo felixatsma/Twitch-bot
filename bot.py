@@ -4,34 +4,49 @@ import sys
 import socket
 import re
 import time
-
-user = "catz0rzbot"
-passwd = open("passwd", "r").read()
-server = "irc.twitch.tv"
-port = 6667
-chan = "#sir_catz0rz"
-
-owner = "sir_catz0rz"
-mods = ["catz0rzbot"]
+import json
 
 irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 command_dict = {}
+data = {}
 
 
-def irc_connect(server, port):
+def load_data():
+    """
+    Loads data from data.json into dictionaries.
+    """
+    global data
+    global command_dict
+    with open("data.json") as f:
+        file = json.load(f)
+    data = file["data"]
+    command_dict = file["commands"]
+    print(command_dict)
+
+
+def dump_data():
+    """
+    Dumps (potentially updated) data from dictionaries in data.json when the
+    bot is closed.
+    """
+    with open("data.json", "w") as f:
+        json.dump({"data": data, "commands": command_dict}, f)
+
+
+def irc_connect():
     """
     Connects to the Twitch irc servers, to the channel specified in 'chan'
     Prints the response to the attempted connection, this should just be the
     Twitch welcome message.
     """
-    print("connecting to : " + server + ":" + str(port))
-    print("channel       : " + chan)
-    irc.connect((server, port))
-    irc.send(("USER catz0rzbot - - :catz0rzbot\n").encode())
-    irc.send(("PASS " + passwd + "\n").encode())
-    irc.send(("NICK " + user + "\n").encode())
-    irc.send(("JOIN " + chan + "\n").encode())
+    print("connecting to : " + data["server"] + ":" + str(data["port"]))
+    print("channel       : " + data["chan"])
+    irc.connect((data["server"], data["port"]))
+    irc.send(("USER %s - - :%s\n" % (data["user"], data["user"])).encode())
+    irc.send(("PASS " + data["passwd"] + "\n").encode())
+    irc.send(("NICK " + data["user"] + "\n").encode())
+    irc.send(("JOIN " + data["chan"] + "\n").encode())
     response = irc.recv(2040)
     print(response.decode('unicode_escape'))
     send("/me is now online")
@@ -74,39 +89,21 @@ def irc_read():
                 send("Happy birthday " + usr + "!")
 
             # Mod commands
-            if txt[0] == "!" and usr == owner or usr in mods:
+            if txt[0] == "!" and usr == data["owner"] or usr in data["mods"]:
                 print(txt)
                 if txt == "!stop":
                     send("/me is now offline")
                     print("User " + str(usr) + " called !stop")
                     break
                 elif txt == "!addmod":
-                    mods.append(args[0])
-                elif txt == "!addcom":
-                    if args[0] in command_dict:
-                        send("Command already exists!")
+                    if args[0] in data["mods"]:
+                        send("User is already mod!")
                     else:
-                        add_com(args[0], " ".join(args[1:]))
-
-
-def read_comms():
-    """
-    Reads commands from 'comms' file into command_dict dictionary.
-    """
-    comms = (open("comms", "r")).readlines()
-
-    for line in comms:
-        command_dict.update({line.split()[0]: " ".join(line.split()[1:])})
-
-
-def add_com(com, text):
-    """
-    Adds command to command_dict and 'comms' file.
-    """
-    comms = (open("comms", "a"))
-    command_dict.update({"!" + com: text})
-    comms.write("!%s %s\n" % (com, text))
-    send("Command added succesfully.")
+                        data["mods"].append(args[0])
+                        send("Mod added")
+                elif txt == "!addcom":
+                    command_dict["!" + args[0]] = " ".join(args[1:])
+                    send("Command added")
 
 
 def irc_exit():
@@ -114,7 +111,7 @@ def irc_exit():
     Closes the irc connection.
     """
     print("exiting...")
-    irc.send(("PART $sir_catz0rz\n").encode())
+    irc.send(("PART $%s\n" % data["chan"][1:]).encode())
     irc.send(("QUIT\n").encode())
     irc.close()
 
@@ -123,10 +120,11 @@ def main():
     """
     Initializes connection and read loop.
     """
-    read_comms()
-    irc_connect(server, port)
+    load_data()
+    irc_connect()
     irc_read()
     irc_exit()
+    dump_data()
 
 
 if __name__ == "__main__":
@@ -135,9 +133,11 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         send("/me is now offline")
         irc_exit()
+        dump_data()
         sys.exit()
     except Exception as e:
         print("ERROR: ", e)
         send("/me is now offline")
         irc_exit()
+        dump_data()
         sys.exit()
